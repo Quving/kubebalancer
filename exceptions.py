@@ -1,0 +1,2 @@
+class KubenodeCannotBeParsedFromJson(Exception):
+    pass
