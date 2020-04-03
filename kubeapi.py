@@ -33,7 +33,7 @@ class KubeApi:
         res = api_client.list_namespaced_deployment(namespace=namespace)
         return [r.metadata.name for r in res.items]
 
-    def wait_for_deployment_complete(self, deployment_name, namespace, timeout=180):
+    def watch_rollout(self, deployment_name, namespace, timeout=180):
         api = client.AppsV1Api()
         start = time.time()
         msg = ''
@@ -75,8 +75,3 @@ class KubeApi:
         self.excute_shell_cmd(command)
 
 
-if __name__ == '__main__':
-    kubeapi = KubeApi()
-    # kubeapi.get_deployments(namespace='testing')
-    # kubeapi.restart_rollout('eos-web', 'testing')
-    # kubeapi.wait_for_deployment_complete('eos-web', 'testing')
