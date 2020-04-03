@@ -14,6 +14,9 @@ class KubeApi:
         config.load_kube_config()
 
     def get_nodes(self, label_selector):
+        """
+        Returns a list of KubeNodes that is matched to the label selector.
+        """
         print("Listing pods with their IPs:")
         api_client = client.CoreV1Api()
         ret = api_client.list_node(label_selector=label_selector)
@@ -23,10 +26,12 @@ class KubeApi:
         return kubenodes
 
     def get_deployments(self, namespace):
+        """
+        Returns a list of deployment names within a specified namespace.
+        """
         api_client = client.AppsV1Api()
         res = api_client.list_namespaced_deployment(namespace=namespace)
-        for r in res.items:
-            print(r.metadata.name)
+        return [r.metadata.name for r in res.items]
 
     def wait_for_deployment_complete(self, deployment_name, namespace, timeout=180):
         api = client.AppsV1Api()
@@ -51,19 +56,21 @@ class KubeApi:
         raise RuntimeError(f'Waiting timeout for deployment {deployment_name}')
 
     def excute_shell_cmd(self, cmd_str):
+        """
+        Execute a given cmd on the shell, attaches the output and returns the exit value.
+        """
         process = subprocess.Popen(cmd_str.split(), stdout=subprocess.PIPE, universal_newlines=True)
         while True:
             output = process.stdout.readline()
             print(output.strip())
-            # Do something else
             return_code = process.poll()
             if return_code is not None:
-                # Process has finished, read rest of the output
-                for output in process.stdout.readlines():
-                    print(output.strip())
                 return return_code
 
     def restart_rollout(self, deployment_name, namespace):
+        """
+        Restart a kubernetes rollout.
+        """
         command = 'kubectl rollout restart deployment/{} -n {}'.format(deployment_name, namespace)
         self.excute_shell_cmd(command)
 
@@ -71,5 +78,5 @@ class KubeApi:
 if __name__ == '__main__':
     kubeapi = KubeApi()
     # kubeapi.get_deployments(namespace='testing')
-    kubeapi.restart_rollout('eos-web', 'testing')
-    kubeapi.wait_for_deployment_complete('eos-web', 'testing')
+    # kubeapi.restart_rollout('eos-web', 'testing')
+    # kubeapi.wait_for_deployment_complete('eos-web', 'testing')
