@@ -1,0 +1,22 @@
+image: docker:latest
+
+variables:
+  DOCKER_DRIVER: overlay2
+
+stages:
+  - build
+
+variables:
+  TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  PROXY_HTTP: http://proxy.hoou.ovh:3128
+  PROXY_HTTPS: http://proxy.hoou.ovh:3128
+
+build and publish:
+  stage: build
+  only:
+    - master
+  before_script:
+    - docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+  script:
+    - docker build --build-arg http_proxy=$PROXY_HTTP --build-arg https_proxy=$PROXY_HTTPS -t $TAG .
+    - docker push $TAG
