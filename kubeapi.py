@@ -1,3 +1,5 @@
+import json
+import os
 import subprocess
 import time
 
@@ -21,7 +23,7 @@ class KubeApi:
         api_client = client.CoreV1Api()
         ret = api_client.list_node(label_selector=label_selector)
 
-        kubenodes = [KubeNode(node_json=node) for node in ret.items]
+        kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
 
         return kubenodes
 
@@ -74,4 +76,31 @@ class KubeApi:
         command = 'kubectl rollout restart deployment/{} -n {}'.format(deployment_name, namespace)
         self.excute_shell_cmd(command)
 
+    def watch_health(self):
+        # Settings
+        interval = 1
+        filename = 'nodes_health.json'
+        label_selector = 'grid=testing'
 
+        def save_kubenode_states_to_file():
+            with open(filename, 'w') as file:
+                kubenodes = self.get_nodes(label_selector)
+                json_dicts = [kn.to_dict() for kn in kubenodes]
+                json.dump(json_dicts, file, indent=4)
+
+        def load_kubenode_states_from_file():
+            with open(filename, 'r') as file:
+                return [KubeNode.from_dict(json) for json in json.load(file)]
+
+        # Initially, the log file will be deleted to not have side effects.
+        if os.path.exists(filename):
+            os.remove(filename)
+
+        while True:
+            time.sleep(interval)
+            print(save_kubenode_states_to_file())
+            print(load_kubenode_states_from_file())
+
+
+if __name__ == '__main__':
+    KubeApi().watch_health()
