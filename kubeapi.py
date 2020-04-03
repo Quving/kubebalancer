@@ -19,7 +19,6 @@ class KubeApi:
         """
         Returns a list of KubeNodes that is matched to the label selector.
         """
-        print("Listing pods with their IPs:")
         api_client = client.CoreV1Api()
         ret = api_client.list_node(label_selector=label_selector)
 
@@ -78,15 +77,15 @@ class KubeApi:
 
     def watch_health(self):
         # Settings
-        interval = 1
+        interval = 3
         filename = 'nodes_health.json'
         label_selector = 'grid=testing'
 
-        def save_kubenode_states_to_file():
+        def save_kubenode_states_to_file(kubenodes):
             with open(filename, 'w') as file:
-                kubenodes = self.get_nodes(label_selector)
                 json_dicts = [kn.to_dict() for kn in kubenodes]
                 json.dump(json_dicts, file, indent=4)
+            return kubenodes
 
         def load_kubenode_states_from_file():
             with open(filename, 'r') as file:
@@ -96,10 +95,19 @@ class KubeApi:
         if os.path.exists(filename):
             os.remove(filename)
 
+        kubenode_initial = self.get_nodes(label_selector)
+        save_kubenode_states_to_file(kubenode_initial)
         while True:
             time.sleep(interval)
-            print(save_kubenode_states_to_file())
-            print(load_kubenode_states_from_file())
+            kubenode_state_before = load_kubenode_states_from_file()
+            kubenode_state_now = self.get_nodes(label_selector)
+
+            # Detect if a node came only recently
+            pairs = zip(kubenode_state_before, kubenode_state_now)
+            no_changes = any(x != y for x, y in pairs)
+            if not no_changes:
+                print('Restart rollout.')
+            save_kubenode_states_to_file(kubenode_state_now)
 
 
 if __name__ == '__main__':
