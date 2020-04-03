@@ -3,7 +3,7 @@ import time
 
 from kubernetes import client, config
 
-from models import KubeNode
+from kubenode import KubeNode
 
 namespace = 'testing'
 label_selector = 'grid=testing'
