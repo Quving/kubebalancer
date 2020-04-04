@@ -52,7 +52,8 @@ class KubeNode:
         )
 
     def to_dict(self):
-        attrs = {str(i): getattr(self, i) for i in dir(self) if not i.startswith('__') and not callable(getattr(self, i))}
+        attrs = {str(i): getattr(self, i) for i in dir(self) if
+                 not i.startswith('__') and not callable(getattr(self, i))}
         return attrs
 
     def __str__(self):
