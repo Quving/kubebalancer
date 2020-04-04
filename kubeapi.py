@@ -13,6 +13,15 @@ class KubeApi:
     def __init__(self):
         config.load_kube_config()
 
+        # Configure logger
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.addHandler(handler)
+
     def get_nodes(self, label_selector):
         """
         Returns a list of KubeNodes that is matched to the label selector.
@@ -96,6 +105,10 @@ class KubeApi:
         kubenode_initial = self.get_nodes(label_selector)
         save_kubenode_states_to_file(kubenode_initial)
 
+        self.logger.info('Start monitoring kubenodes.')
+        self.logger.info('{} kubenode(s) are available and will be set as healthy state.'.format(len(kubenode_initial)))
+        self.logger.info('The health will be checked in an interval of {} seconds.'.format(interval))
+
         while True:
             time.sleep(interval)
             kubenode_state_before = load_kubenode_states_from_file()
@@ -105,17 +118,20 @@ class KubeApi:
             n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])
 
             # Detect if a node came only recently (since last check interval).
-            if n_nodes_ready_now > n_nodes_ready_before:
+            diff = n_nodes_ready_before - n_nodes_ready_now
+            if diff < 0:
+                self.logger.info("{} node(s) came online since last check.".format(abs(diff)))
                 for deployment in deployments:
                     self.restart_rollout(namespace=namespace, deployment_name=deployment)
                     self.watch_rollout(namespace=namespace, deployment_name=deployment)
 
             # Nothing is happening
-            elif n_nodes_ready_now == n_nodes_ready_before:
+            elif diff == 0:
                 pass
 
             # Greater than equals 1 node went offline since last check.
             else:
+                self.logger.info("{} node(s) went offline since last check.".format(abs(diff)))
                 pass
 
             save_kubenode_states_to_file(kubenode_state_now)
