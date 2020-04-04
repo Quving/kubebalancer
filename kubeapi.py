@@ -23,7 +23,6 @@ class KubeApi:
         ret = api_client.list_node(label_selector=label_selector)
 
         kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
-
         return kubenodes
 
     def get_deployments(self, namespace):
@@ -75,11 +74,11 @@ class KubeApi:
         command = 'kubectl rollout restart deployment/{} -n {}'.format(deployment_name, namespace)
         self.excute_shell_cmd(command)
 
-    def watch_health(self):
+    def watch_health(self, namespace, deployments):
         # Settings
         interval = 3
         filename = 'nodes_health.json'
-        label_selector = 'grid=testing'
+        label_selector = 'grid={}'.format(namespace)
 
         def save_kubenode_states_to_file(kubenodes):
             with open(filename, 'w') as file:
@@ -97,18 +96,22 @@ class KubeApi:
 
         kubenode_initial = self.get_nodes(label_selector)
         save_kubenode_states_to_file(kubenode_initial)
+
         while True:
             time.sleep(interval)
             kubenode_state_before = load_kubenode_states_from_file()
             kubenode_state_now = self.get_nodes(label_selector)
 
-            # Detect if a node came only recently
-            pairs = zip(kubenode_state_before, kubenode_state_now)
-            no_changes = any(x != y for x, y in pairs)
-            if not no_changes:
-                print('Restart rollout.')
+            n_nodes_ready_before = len([n for n in kubenode_state_before if n.ready])
+            n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])
+
+            # Detect if a node came only recently (since last check interval).
+            if n_nodes_ready_now > n_nodes_ready_before:
+                for deployment in deployments:
+                    self.restart_rollout(namespace=namespace, deployment_name=deployment)
+                    self.watch_rollout(namespace=namespace, deployment_name=deployment)
+            else:
+                # Greater than equals nodes went offline since last check.
+                pass
+
             save_kubenode_states_to_file(kubenode_state_now)
-
-
-if __name__ == '__main__':
-    KubeApi().watch_health()
