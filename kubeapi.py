@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import time
+from pprint import pprint
 
 from kubernetes import client, config
 
@@ -85,7 +86,10 @@ class KubeApi:
     def watch_health(self, namespace, deployments):
         # Settings
         interval = 3
-        filename = 'nodes_health.json'
+        filename = 'healthy_state.json'
+
+        self.logger.info('The health will be checked in an interval of {} seconds.'.format(interval))
+
         label_selector = 'grid={}'.format(namespace)
 
         def save_kubenode_states_to_file(kubenodes):
@@ -98,23 +102,25 @@ class KubeApi:
             with open(filename, 'r') as file:
                 return [KubeNode.from_dict(json) for json in json.load(file)]
 
-        # Initially, the log file will be deleted to not have side effects.
+        # Check if a initial kubenodes atate has been set.
         if os.path.exists(filename):
-            os.remove(filename)
+            kubenode_states = load_kubenode_states_from_file()
+            self.logger.info(
+                'Preset kubenode states found. {} kubenode(s) are set as healthy state.'.format(len(kubenode_states)))
+        else:
+            kubenode_states = self.get_nodes(label_selector)
+            self.logger.info(
+                'No preset kubenode states found. Current state of will be set as healty state. {} kubenode(s) found.'
+                    .format(len(kubenode_states)))
 
-        kubenode_initial = self.get_nodes(label_selector)
-        save_kubenode_states_to_file(kubenode_initial)
+        pprint([n.to_dict() for n in kubenode_states])
 
         self.logger.info('Start monitoring kubenodes.')
-        self.logger.info('{} kubenode(s) are available and will be set as healthy state.'.format(len(kubenode_initial)))
-        self.logger.info('The health will be checked in an interval of {} seconds.'.format(interval))
-
         while True:
             time.sleep(interval)
-            kubenode_state_before = load_kubenode_states_from_file()
             kubenode_state_now = self.get_nodes(label_selector)
 
-            n_nodes_ready_before = len([n for n in kubenode_state_before if n.ready])
+            n_nodes_ready_before = len([n for n in kubenode_states if n.ready])
             n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])
 
             # Detect if a node came only recently (since last check interval).
@@ -125,7 +131,7 @@ class KubeApi:
                     self.restart_rollout(namespace=namespace, deployment_name=deployment)
                     self.watch_rollout(namespace=namespace, deployment_name=deployment)
 
-            # Nothing is happening
+            # Nothing is happening. Same state as before.
             elif diff == 0:
                 pass
 
@@ -134,4 +140,4 @@ class KubeApi:
                 self.logger.info("{} node(s) went offline since last check.".format(abs(diff)))
                 pass
 
-            save_kubenode_states_to_file(kubenode_state_now)
+            kubenode_states = kubenode_state_now
