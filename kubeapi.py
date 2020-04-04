@@ -7,9 +7,6 @@ from kubernetes import client, config
 
 from kubenode import KubeNode
 
-namespace = 'testing'
-label_selector = 'grid=testing'
-
 
 class KubeApi:
     def __init__(self):
