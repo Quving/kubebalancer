@@ -13,4 +13,4 @@ RUN chmod +x kubectl
 RUN ln -s /kubectl /usr/bin/kubectl
 
 WORKDIR /app
-CMD ["echo", "not implemented yet"]
+CMD ["python", "main.py"]
