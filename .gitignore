@@ -265,3 +265,4 @@ tags
 
 .idea/**
 healthy_state.json
+config.json
