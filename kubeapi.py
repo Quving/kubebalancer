@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import subprocess
 import time
@@ -103,16 +104,18 @@ class KubeApi:
             n_nodes_ready_before = len([n for n in kubenode_state_before if n.ready])
             n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])
 
+            # Detect if a node came only recently (since last check interval).
             if n_nodes_ready_now > n_nodes_ready_before:
-                # Detect if a node came only recently (since last check interval).
                 for deployment in deployments:
                     self.restart_rollout(namespace=namespace, deployment_name=deployment)
                     self.watch_rollout(namespace=namespace, deployment_name=deployment)
+
+            # Nothing is happening
             elif n_nodes_ready_now == n_nodes_ready_before:
-                # Nothing is happening
                 pass
+
+            # Greater than equals 1 node went offline since last check.
             else:
-                # Greater than equals nodes went offline since last check.
                 pass
 
             save_kubenode_states_to_file(kubenode_state_now)
