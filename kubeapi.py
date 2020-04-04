@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import subprocess
 import time
@@ -8,20 +7,13 @@ from pprint import pprint
 from kubernetes import client, config
 
 from kubenode import KubeNode
+from logger import Logger
 
 
 class KubeApi:
     def __init__(self):
         config.load_kube_config()
-
-        # Configure logger
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(handler)
+        self.logger = Logger.logger
 
     def get_nodes(self, label_selector):
         """
@@ -106,14 +98,16 @@ class KubeApi:
         if os.path.exists(filename):
             kubenode_states = load_kubenode_states_from_file()
             self.logger.info(
-                'Preset kubenode states found. {} kubenode(s) are set as healthy state.'.format(len(kubenode_states)))
+                'Preset kubenode states found. {} kubenode(s) are set as healthy state.\n'.format(len(kubenode_states)))
         else:
             kubenode_states = self.get_nodes(label_selector)
             self.logger.info(
-                'No preset kubenode states found. Current state of will be set as healty state. {} kubenode(s) found.'
+                'No preset kubenode states found. Current state of will be set as healty state. {} kubenode(s) found.\n'
                     .format(len(kubenode_states)))
+            save_kubenode_states_to_file(kubenode_states)
 
         pprint([n.to_dict() for n in kubenode_states])
+        print('\n')
 
         self.logger.info('Start monitoring kubenodes.')
         while True:
