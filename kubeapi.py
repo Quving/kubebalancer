@@ -23,6 +23,7 @@ class KubeApi:
         ret = api_client.list_node(label_selector=label_selector)
 
         kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
+        kubenodes = sorted(kubenodes, key=lambda k: k.name)
         return kubenodes
 
     def get_deployments(self, namespace):
