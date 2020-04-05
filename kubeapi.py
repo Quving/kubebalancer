@@ -75,9 +75,8 @@ class KubeApi:
         command = 'kubectl rollout restart deployment/{} -n {}'.format(deployment_name, namespace)
         self.excute_shell_cmd(command)
 
-    def watch_health(self, namespace, deployments):
+    def watch_health(self, namespace, deployments, interval=5):
         # Settings
-        interval = 3
         filename = 'healthy_state.json'
 
         self.logger.info('The health will be checked in an interval of {} seconds.'.format(interval))

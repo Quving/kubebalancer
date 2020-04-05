@@ -4,11 +4,12 @@ Currently there is no official configuration for the rescheduling problem of the
 
 
 ## Solution
-This solution was developed from the given problem described above. This service is a running container that monitors the states of the Kubernetes nodes. If a node fails and comes back online after a certain time, specified pods are automatically redistributed (by specifying the deployment). Thus a load balance is restored.
+This solution was developed from the given problem described above. This service is a running container that monitors the states of the Kubernetes nodes. If a node fails and comes back online after a certain time, specified pods are automatically redistributed (by specifying the deployment). Thus a load balance is restored. This solution can be used on all Kubernetes cluster environments.
 
 
 ## Setup
-... under construction ...
+### Kubernetes Authentication
+
 
 
 ## Usage
