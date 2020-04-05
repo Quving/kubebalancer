@@ -4,9 +4,9 @@ Currently there is no official configuration for the rescheduling problem of the
 
 
 ## Solution
-This solution was developed from the given problem described above. This service is a running container that monitors the states of the Kubernetes nodes. If a node fails and comes back online after a certain time, specified pods are automatically redistributed (by specifying the deployment). Thus a load balance is restored. This solution can be used on all Kubernetes cluster environments.
+This solution was developed from the given problem described above. This service is a running container that monitors the states of the Kubernetes nodes. If a node fails and comes back online after a certain time, specified pods are automatically redistributed (by specifying the deployment). Thus a load balance is restored. This solution can be used on all Kubernetes cluster environments. 
 
-
+This service does not have to run in a cluster, but can be hosted from anywhere where you can work with cli ```kubectl```.
 ## Setup and Configuration
 ### Kubernetes Authentication (Required)
 In order for the status to be recorded by the Kubernetes nodes and for the rescheduling to work of course, the service must be authorized. A kube-config file is required for this. This service uses the same authentication method as kubectl.
