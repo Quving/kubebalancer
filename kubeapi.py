@@ -15,12 +15,12 @@ class KubeApi:
         config.load_kube_config()
         self.logger = Logger.logger
 
-    def get_nodes(self, label_selector):
+    def get_nodes(self, node_label_selector):
         """
         Returns a list of KubeNodes that is matched to the label selector.
         """
         api_client = client.CoreV1Api()
-        ret = api_client.list_node(label_selector=label_selector)
+        ret = api_client.list_node(label_selector=node_label_selector)
 
         kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
         kubenodes = sorted(kubenodes, key=lambda k: k.name)
@@ -75,13 +75,11 @@ class KubeApi:
         command = 'kubectl rollout restart deployment/{} -n {}'.format(deployment_name, namespace)
         self.excute_shell_cmd(command)
 
-    def watch_health(self, namespace, deployments, interval=5):
+    def watch_health(self, namespace, deployments, node_label_selector, interval=5):
         # Settings
         filename = 'healthy_state.json'
 
         self.logger.info('The health will be checked in an interval of {} seconds.'.format(interval))
-
-        label_selector = 'grid={}'.format(namespace)
 
         def save_kubenode_states_to_file(kubenodes):
             with open(filename, 'w') as file:
@@ -99,7 +97,7 @@ class KubeApi:
             self.logger.info(
                 'Preset kubenode states found. {} kubenode(s) are set as healthy state.\n'.format(len(kubenode_states)))
         else:
-            kubenode_states = self.get_nodes(label_selector)
+            kubenode_states = self.get_nodes(node_label_selector)
             self.logger.info(
                 'No preset kubenode states found. Current state of will be set as healty state. {} kubenode(s) found.\n'
                     .format(len(kubenode_states)))
@@ -111,7 +109,7 @@ class KubeApi:
         self.logger.info('Start monitoring kubenodes.')
         while True:
             time.sleep(interval)
-            kubenode_state_now = self.get_nodes(label_selector)
+            kubenode_state_now = self.get_nodes(node_label_selector)
 
             n_nodes_ready_before = len([n for n in kubenode_states if n.ready])
             n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])

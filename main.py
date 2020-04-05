@@ -17,7 +17,7 @@ def get_config():
             logger.info('Config found:\n')
 
             # Check config syntax briefly.
-            for key in ['interval', 'deployments', 'namespace']:
+            for key in ['interval', 'deployments', 'namespace', 'node_label_selector']:
                 if not key in config:
                     logger.error('Config.json is missing "{}" attribute. Please add it.'.format(key))
                     sys.exit(-1)
@@ -25,8 +25,10 @@ def get_config():
             valid_interval = isinstance(config['interval'], int) and config['interval'] > 0
             valid_deployments = isinstance(config['deployments'], list) and not bool([])
             valid_namespace = isinstance(config['namespace'], str) and not bool(config['namespace'])
+            valid_node_label_selector = isinstance(config['node_label_selector'], str) and not bool(
+                config['node_label_selector'])
 
-            if not valid_interval and valid_deployments and valid_namespace:
+            if not valid_interval and valid_deployments and valid_namespace and valid_node_label_selector:
                 logger.error('Config.json is not valid. Please check it.')
                 sys.exit(-1)
 
@@ -50,6 +52,7 @@ if __name__ == '__main__':
     config = get_config()
     api = KubeApi()
     api.watch_health(
+        node_label_selector=config['node_label_selector'],
         interval=config['interval'],
         namespace=config['namespace'],
         deployments=config['deployments']
