@@ -4,7 +4,7 @@ Currently there is no official configuration for the rescheduling problem of the
 
 
 ## Solution
-This solution was developed from the given problem described above. This service is a running container that monitors the states of the Kubernetes nodes. If a node fails and comes back online after a certain time, specified pods are automatically redistributed (by specifying the deployment). Thus a load balance is restored. This solution can be used on all Kubernetes cluster environments. 
+This solution was developed from the given problem described above. This service is a running container that monitors the states of the Kubernetes nodes. If a node fails and comes back online after a certain time, specified pods are automatically redistributed (by specifying the deployment). Thus a load balance is restored. This solution can be used on all Kubernetes cluster environments.
 
 This service does not have to run in a cluster, but can be hosted from anywhere where you can work with cli ```kubectl```.
 ## Setup and Configuration
@@ -14,8 +14,8 @@ In order for the status to be recorded by the Kubernetes nodes and for the resch
 So make sure that a valid kubeconfig file is located under ```~/.kube/config```.
 
 ### config.json (Required)
-The configuration is done here via the config.json. 
-Example config.json  
+The configuration is done here via the config.json.
+Example config.json
 ```json
 {
   "interval": 3,
@@ -76,6 +76,7 @@ If no health_state.json is specified, then the current state at the start of the
 ```
 docker run -d \
     --name kubebalancer \
+    -v /path/to/config.json:/app/config.json \
     -v /path/to/kube/config:/root/.kube/config \
     kubebalancer:latest
 ```
