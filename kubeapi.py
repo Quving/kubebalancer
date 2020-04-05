@@ -54,7 +54,7 @@ class KubeApi:
                     print(msg_new)
                     msg = msg_new
 
-        raise RuntimeError(f'Waiting timeout for deployment {deployment_name}')
+        raise RuntimeError('Waiting timeout for deployment {}'.format(deployment_name))
 
     def excute_shell_cmd(self, cmd_str):
         """
