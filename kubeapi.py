@@ -1,10 +1,12 @@
 import json
 import os
+import random
 import subprocess
 import time
 from pprint import pprint
 
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 
 from kubenode import KubeNode
 from logger import Logger
@@ -19,12 +21,17 @@ class KubeApi:
         """
         Returns a list of KubeNodes that is matched to the label selector.
         """
-        api_client = client.CoreV1Api()
-        ret = api_client.list_node(label_selector=node_label_selector)
+        try:
+            api_client = client.CoreV1Api()
+            ret = api_client.list_node(label_selector=node_label_selector)
 
-        kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
-        kubenodes = sorted(kubenodes, key=lambda k: k.name)
-        return kubenodes
+            kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
+            kubenodes = sorted(kubenodes, key=lambda k: k.name)
+
+            return kubenodes
+        except ApiException as e:
+            self.logger.error("KubeApi not available (503).")
+            return None
 
     def get_deployments(self, namespace):
         """
@@ -34,7 +41,10 @@ class KubeApi:
         res = api_client.list_namespaced_deployment(namespace=namespace)
         return [r.metadata.name for r in res.items]
 
-    def watch_rollout(self, deployment_name, namespace, timeout=180):
+    def watch_rollout(self, deployment_name, namespace, timeout=180, verbose=False):
+        """
+        Start Kubebalancer watching thread.
+        """
         api = client.AppsV1Api()
         start = time.time()
         msg = ''
@@ -50,13 +60,13 @@ class KubeApi:
             else:
                 msg_new = '[updated_replicas: {}, replicas: {}, available_replicas: {}, observed_generation: {}]' \
                     .format(s.updated_replicas, s.replicas - 1, s.available_replicas, s.observed_generation)
-                if not msg == msg_new:
+                if not msg == msg_new and verbose:
                     print(msg_new)
                     msg = msg_new
 
         raise RuntimeError('Waiting timeout for deployment {}'.format(deployment_name))
 
-    def excute_shell_cmd(self, cmd_str):
+    def execute_shell_cmd(self, cmd_str):
         """
         Execute a given cmd on the shell, attaches the output and returns the exit value.
         """
@@ -73,7 +83,7 @@ class KubeApi:
         Restart a kubernetes rollout.
         """
         command = 'kubectl rollout restart deployment/{} -n {}'.format(deployment_name, namespace)
-        self.excute_shell_cmd(command)
+        self.execute_shell_cmd(command)
 
     def watch_health(self, namespace, deployments, node_label_selector, interval=5):
         # Settings
@@ -111,6 +121,10 @@ class KubeApi:
             time.sleep(interval)
             kubenode_state_now = self.get_nodes(node_label_selector)
 
+            # If ApiException occured, usually "Service Unavailable (503)".
+            if kubenode_state_now is None:
+                continue
+
             n_nodes_ready_before = len([n for n in kubenode_states if n.ready])
             n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])
 
@@ -118,9 +132,21 @@ class KubeApi:
             diff = n_nodes_ready_before - n_nodes_ready_now
             if diff < 0:
                 self.logger.info("{} node(s) came online since last check.".format(abs(diff)))
+
+                # Check if no deployments are specified, deploy random n+dp/m_nodes deployments.
+                if not deployments:
+                    self.logger.info("No deployments specified. Automatic rescheduling will be applied.")
+                    n_dp_to_restart = int(len(self.get_deployments(namespace=namespace)) / n_nodes_ready_now)
+                    self.logger.info("{} random selected deployments will be rescheduled.".format(n_dp_to_restart))
+                    deployments = random.sample(self.get_deployments(namespace), k=n_dp_to_restart)
+
                 for deployment in deployments:
+                    self.logger.info("Deployment \"{}\" will be rescheduled.".format(deployment))
                     self.restart_rollout(namespace=namespace, deployment_name=deployment)
                     self.watch_rollout(namespace=namespace, deployment_name=deployment)
+
+                self.logger.info("Rescheduling process applied.")
+
 
             # Nothing is happening. Same state as before.
             elif diff == 0:
