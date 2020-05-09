@@ -9,8 +9,10 @@ from logger import Logger
 logger = Logger.logger
 
 
-def get_config():
-    config_file = 'config.json'
+def get_config(config_file='config.json'):
+    """
+    Reads and parses the config file.
+    """
     if os.path.exists(config_file):
         with open(config_file, 'r') as file:
             config = json.load(file)

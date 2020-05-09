@@ -30,16 +30,22 @@ class KubeApi:
 
             return kubenodes
         except ApiException as e:
-            self.logger.error("KubeApi not available (503).")
-            return None
+            self.logger.error("KubeApi is currently not available (503). Request will be retried in 5s.")
+            time.sleep(5)
+            return self.get_nodes(node_label_selector)
 
     def get_deployments(self, namespace):
         """
         Returns a list of deployment names within a specified namespace.
         """
-        api_client = client.AppsV1Api()
-        res = api_client.list_namespaced_deployment(namespace=namespace)
-        return [r.metadata.name for r in res.items]
+        try:
+            api_client = client.AppsV1Api()
+            res = api_client.list_namespaced_deployment(namespace=namespace)
+            return [r.metadata.name for r in res.items]
+        except ApiException as e:
+            self.logger.error("KubeApi is currently not available (503). Request will be retried in 5s.")
+            time.sleep(5)
+            return self.get_deployments(namespace)
 
     def watch_rollout(self, deployment_name, namespace, timeout=180, verbose=False):
         """
@@ -121,10 +127,6 @@ class KubeApi:
             time.sleep(interval)
             kubenode_state_now = self.get_nodes(node_label_selector)
 
-            # If ApiException occured, usually "Service Unavailable (503)".
-            if kubenode_state_now is None:
-                continue
-
             n_nodes_ready_before = len([n for n in kubenode_states if n.ready])
             n_nodes_ready_now = len([n for n in kubenode_state_now if n.ready])
 
@@ -152,7 +154,7 @@ class KubeApi:
             elif diff == 0:
                 pass
 
-            # Greater than equals 1 node went offline since last check.
+            # Greater than equals 1: Node went offline since last check.
             else:
                 self.logger.info("{} node(s) went offline since last check.".format(abs(diff)))
                 pass
