@@ -17,35 +17,35 @@ class KubeApi:
         config.load_kube_config()
         self.logger = Logger.logger
 
-    def get_nodes(self, node_label_selector):
+    def get_nodes(self, node_label_selector, retry_timer=5):
         """
         Returns a list of KubeNodes that is matched to the label selector.
         """
-        try:
-            api_client = client.CoreV1Api()
-            ret = api_client.list_node(label_selector=node_label_selector)
+        while True:
+            try:
+                api_client = client.CoreV1Api()
+                ret = api_client.list_node(label_selector=node_label_selector)
 
-            kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
-            kubenodes = sorted(kubenodes, key=lambda k: k.name)
+                kubenodes = [KubeNode.from_kubernetes_client(node_json=node) for node in ret.items]
+                kubenodes = sorted(kubenodes, key=lambda k: k.name)
 
-            return kubenodes
-        except ApiException as e:
-            self.logger.error("KubeApi is currently not available (503). Request will be retried in 5s.")
-            time.sleep(5)
-            return self.get_nodes(node_label_selector)
+                return kubenodes
+            except ApiException as e:
+                self.logger.error("KubeApi is currently not available (503). Request will be retried in 5s.")
+                time.sleep(retry_timer)
 
-    def get_deployments(self, namespace):
+    def get_deployments(self, namespace, retry_timer=5):
         """
         Returns a list of deployment names within a specified namespace.
         """
-        try:
-            api_client = client.AppsV1Api()
-            res = api_client.list_namespaced_deployment(namespace=namespace)
-            return [r.metadata.name for r in res.items]
-        except ApiException as e:
-            self.logger.error("KubeApi is currently not available (503). Request will be retried in 5s.")
-            time.sleep(5)
-            return self.get_deployments(namespace)
+        while True:
+            try:
+                api_client = client.AppsV1Api()
+                res = api_client.list_namespaced_deployment(namespace=namespace)
+                return [r.metadata.name for r in res.items]
+            except ApiException as e:
+                self.logger.error("KubeApi is currently not available (503). Request will be retried in 5s.")
+                time.sleep(retry_timer)
 
     def watch_rollout(self, deployment_name, namespace, timeout=180, verbose=False):
         """
