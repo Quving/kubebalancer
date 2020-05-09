@@ -31,7 +31,10 @@ Example config.json
 - **Interval**: In an interval of 3 seconds the status of the nodes is recorded. This means that after 3 seconds at the latest the automatic re-scheduling starts after a relevant node has come back online.
 - **Node_Label_Selector**: This syntax follows the label_selector of Kubernetes and is used to configure which nodes are relevant and monitored.
 - **Namespace**: The namespace specifies the scope of the pods to be rescheduled.
-- **Deployments**: A list of deployment names, which are of course in the specified namespace, that should be rescheduled.
+- **Deployments**: A list of deployment names, which are of course in the specified namespace, that should be rescheduled. 
+    - If none specified (empty list) *n_deployments/m_nodes* random deployments will be selected in the specified namespace and will be rescheduled. 
+    - m_nodes refers to the current number of available nodes during a check routine.
+    - n_deployments includes all deployments in a given namespace. 
 
 ## healthy_state.json (Optional)
 This JSON file specifies how the nodes are in a healthy initial state.
