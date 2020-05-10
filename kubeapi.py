@@ -9,7 +9,7 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
 from kubenode import KubeNode
-from logger import Logger
+from util import Logger
 
 
 class KubeApi:
