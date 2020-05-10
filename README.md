@@ -44,7 +44,7 @@ Example:
     {
         "disk_pressure": false,
         "memory_pressure": false,
-        "name": "cloud-k8s-1",
+        "name": "k8s-node-1",
         "pid_pressure": false,
         "ready": true,
         "uid": "f50480c6-79f8-43b9-8cc2-abd22d2366c3"
@@ -52,7 +52,7 @@ Example:
     {
         "disk_pressure": false,
         "memory_pressure": false,
-        "name": "cloud-k8s-2",
+        "name": "k8s-node-2",
         "pid_pressure": false,
         "ready": true,
         "uid": "f316b7f2-0fc1-4a19-a8cf-9c8f878d0f1c"
@@ -60,7 +60,7 @@ Example:
     {
         "disk_pressure": false,
         "memory_pressure": false,
-        "name": "cloud-k8s-5",
+        "name": "k8s-node-3",
         "pid_pressure": false,
         "ready": true,
         "uid": "aafbab65-35f0-4d9e-a096-ac713303d427"
