@@ -42,7 +42,8 @@ def get_config(config_file='config.json'):
             config = {
                 'deployments': [],
                 'interval': 0,
-                'namespace': ''
+                'namespace': '',
+                'node_label_selector': 'grid=testing',
             }
             json.dump(config, file, indent=4)
 
